@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enquete COMADREN 2027</title>
+<meta name="description" content="Vote na cor do uniforme COMADREN 2027.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <img class="logo" src="images/logo-banner.jpg" alt="COMADREN 2027">
+    <div class="hero-content">
+      <h1>Escolha a cor do uniforme</h1>
+      <p class="lead">Mais que um encontro, um chamado para viver o propósito. Sua escolha ajuda a definir a identidade que vamos vestir em 2027.</p>
+      <span class="badge">Vote uma vez • Leva 20 segundos</span>
+    </div>
+  </header>
+
+  <div class="why">
+    <div class="why-item"><div class="mono">I</div><h3>Identidade</h3><p>Fortalece quem somos e o que representamos.</p></div>
+    <div class="why-item"><div class="mono">P</div><h3>Propósito</h3><p>Cada cor carrega um significado que inspira.</p></div>
+    <div class="why-item"><div class="mono">U</div><h3>Unidade</h3><p>Nos conecta como um só corpo, um mesmo ideal.</p></div>
+    <div class="why-item"><div class="mono">I</div><h3>Impacto</h3><p>Nossa escolha hoje deixa marcas no futuro.</p></div>
+  </div>
+
+  <div id="unavailableBanner" class="unavailable-banner" hidden></div>
+
+  <section class="card">
+    <h2>1. Seus dados</h2>
+    <p class="hint">Usamos seu WhatsApp só para garantir um voto por pessoa — o número não fica visível para ninguém.</p>
+    <div id="returningNote" class="returning-note" hidden></div>
+    <form id="voteForm">
+      <div class="field">
+        <label for="nameInput">Seu nome</label>
+        <input id="nameInput" type="text" autocomplete="name" placeholder="Como podemos te chamar?">
+      </div>
+      <div class="field">
+        <label for="phoneInput">WhatsApp (com DDD)</label>
+        <input id="phoneInput" type="tel" inputmode="numeric" autocomplete="tel" placeholder="(65) 90000-0000">
+      </div>
+
+      <h2 style="margin-top:22px;">2. Escolha a cor</h2>
+      <p class="hint">Toque em uma camisa para selecionar.</p>
+      <div class="options" id="optionsGrid" role="radiogroup" aria-label="Cores do uniforme COMADREN 2027"></div>
+
+      <button type="submit" id="voteBtn" class="vote-btn" disabled>Confirmar meu voto</button>
+      <div id="errorMsg" class="msg error" hidden></div>
+      <div id="thanksPanel" class="thanks" hidden></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Resultado parcial</h2>
+    <p class="hint">Atualizado em tempo real conforme os votos chegam.</p>
+    <div class="results-list" id="resultsList"></div>
+    <div class="results-total" id="resultsTotal"></div>
+  </section>
+
+  <footer>COMADREN 2027 — Conectados para transformar o futuro.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
