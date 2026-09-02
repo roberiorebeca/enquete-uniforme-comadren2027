@@ -4,6 +4,7 @@
 create table if not exists public.votes (
   voter_hash text primary key,
   choice     text        not null,
+  device_id  text,
   updated_at timestamptz not null default now()
 );
 
@@ -16,3 +17,25 @@ create policy "update publico"   on public.votes for update using (true) with ch
 
 -- Realtime: faz o placar atualizar ao vivo em todos os navegadores abertos.
 alter publication supabase_realtime add table public.votes;
+
+
+-- ---------------------------------------------------------------------------
+-- MIGRAÇÃO: marcador de aparelho
+-- Rodar no SQL Editor se a tabela já existia sem a coluna device_id.
+-- ---------------------------------------------------------------------------
+alter table public.votes add column if not exists device_id text;
+
+
+-- ---------------------------------------------------------------------------
+-- AUDITORIA: aparelhos que registraram voto com mais de um número
+-- Rodar no SQL Editor do Supabase quando quiser conferir a votação.
+-- ---------------------------------------------------------------------------
+-- select device_id,
+--        count(*)        as votos,
+--        min(updated_at) as primeiro,
+--        max(updated_at) as ultimo
+-- from public.votes
+-- where device_id is not null
+-- group by device_id
+-- having count(*) > 1
+-- order by votos desc;

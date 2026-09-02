@@ -28,8 +28,29 @@
   const returningNote = document.getElementById("returningNote");
 
   let selectedId = null;
-  let currentVotes = []; // array of {voter_hash, choice}
+  let currentVotes = []; // array of {voter_hash, choice, device_id}
   let canVote = true;
+  let deviceWarningAccepted = false;
+
+  // Identificador aleatório por navegador. Não identifica a pessoa: serve só para
+  // detectar votos repetidos vindos do mesmo aparelho. Some se o usuário limpar o
+  // navegador ou usar aba anônima — é uma camada de auditoria, não um bloqueio.
+  const DEVICE_KEY = "comadren_device";
+
+  function getDeviceId(){
+    try {
+      let id = localStorage.getItem(DEVICE_KEY);
+      if (!id) {
+        id = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : "dev-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem(DEVICE_KEY, id);
+      }
+      return id;
+    } catch(e) {
+      return null; // navegador sem localStorage: o voto segue normalmente, sem marcador
+    }
+  }
 
   function buildOptionCards(){
     optionsGrid.innerHTML = OPTIONS.map(function(o){
@@ -126,7 +147,7 @@
   }
 
   async function loadVotes(){
-    const { data, error } = await supabase.from("votes").select("voter_hash,choice");
+    const { data, error } = await supabase.from("votes").select("voter_hash,choice,device_id");
     if (error) {
       console.error(error);
       canVote = false;
@@ -165,9 +186,21 @@
       const key = await hashPhone(phoneDigits);
       const already = currentVotes.some(function(v){ return v.voter_hash === key; });
       const chosenId = selectedId;
+      const deviceId = getDeviceId();
+
+      // Este aparelho já votou com OUTRO número? Avisa uma vez e deixa seguir —
+      // é legítimo alguém votar pelo celular de outra pessoa.
+      const otherOnDevice = deviceId && currentVotes.some(function(v){
+        return v.device_id === deviceId && v.voter_hash !== key;
+      });
+      if (otherOnDevice && !deviceWarningAccepted) {
+        deviceWarningAccepted = true;
+        showError("Este aparelho já registrou um voto com outro número. Se você está votando por outra pessoa, é só confirmar de novo.");
+        return;
+      }
 
       const { error } = await supabase.from("votes").upsert(
-        { voter_hash: key, choice: chosenId, updated_at: new Date().toISOString() },
+        { voter_hash: key, choice: chosenId, device_id: deviceId, updated_at: new Date().toISOString() },
         { onConflict: "voter_hash" }
       );
 
@@ -184,6 +217,8 @@
         btn.setAttribute("aria-checked", "false");
       });
       selectedId = null;
+
+      deviceWarningAccepted = false; // próximo número neste aparelho recebe o aviso de novo
 
       await loadVotes();
       showThanks(name, chosenId, already);
