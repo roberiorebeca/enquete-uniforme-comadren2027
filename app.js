@@ -48,7 +48,10 @@
       }
       return id;
     } catch(e) {
-      return null; // navegador sem localStorage: o voto segue normalmente, sem marcador
+      // Navegador com armazenamento bloqueado (aba anônima, webview restrito).
+      // Grava um valor fixo em vez de null, para diferenciar no banco
+      // "código novo, sem storage" de "código velho, sem device_id".
+      return "sem-storage";
     }
   }
 
@@ -190,7 +193,8 @@
 
       // Este aparelho já votou com OUTRO número? Avisa uma vez e deixa seguir —
       // é legítimo alguém votar pelo celular de outra pessoa.
-      const otherOnDevice = deviceId && currentVotes.some(function(v){
+      const deviceTrackable = deviceId && deviceId !== "sem-storage";
+      const otherOnDevice = deviceTrackable && currentVotes.some(function(v){
         return v.device_id === deviceId && v.voter_hash !== key;
       });
       if (otherOnDevice && !deviceWarningAccepted) {
