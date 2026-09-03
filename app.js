@@ -203,12 +203,24 @@
         return;
       }
 
-      const { error } = await supabase.from("votes").upsert(
-        { voter_hash: key, choice: chosenId, device_id: deviceId, updated_at: new Date().toISOString() },
-        { onConflict: "voter_hash" }
-      );
+      // A gravação passa por uma função no banco que valida o formato do hash,
+      // a cor e um limite por IP. A tabela não aceita mais escrita direta.
+      const { data: resultado, error } = await supabase.rpc("registrar_voto", {
+        p_voter_hash: key,
+        p_choice: chosenId,
+        p_device_id: deviceId
+      });
 
       if (error) { handleSupabaseError(error); return; }
+
+      if (resultado === "limite") {
+        showError("Chegaram muitos votos desta conexão em pouco tempo. Aguarde alguns minutos e tente de novo.");
+        return;
+      }
+      if (resultado !== "ok") {
+        showError("Não foi possível registrar seu voto. Recarregue a página e tente novamente.");
+        return;
+      }
 
       try {
         localStorage.setItem("comadren_voter", JSON.stringify({name: name, phone: phoneDigits}));
