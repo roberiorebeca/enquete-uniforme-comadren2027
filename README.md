@@ -18,6 +18,21 @@ de agradecimento.
 Não há verificação de posse do número (SMS/WhatsApp OTP). Foi avaliado e descartado por
 ser desproporcional para uma enquete interna.
 
+### Marcador de aparelho
+
+Cada navegador gera um identificador aleatório guardado no `localStorage` e enviado junto
+com o voto na coluna `device_id`. Ele não identifica a pessoa — serve para duas coisas:
+
+1. Se o aparelho já votou com **outro** número, o site avisa e pede uma segunda
+   confirmação. Não bloqueia: é legítimo alguém votar pelo celular de outra pessoa.
+2. Permite auditar depois quais aparelhos concentraram muitos votos (consulta comentada
+   no fim de `supabase/schema.sql`).
+
+Limpar o navegador ou abrir aba anônima zera o marcador. É uma camada de auditoria, não
+uma trava. Filtro por IP foi avaliado e descartado: o CGNAT das operadoras e o Wi-Fi
+compartilhado fazem várias pessoas legítimas dividirem o mesmo IP, e trocar de rede burla
+o filtro em segundos.
+
 ## Estrutura
 
 ```

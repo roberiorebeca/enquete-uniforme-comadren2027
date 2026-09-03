@@ -48,6 +48,15 @@
       <p class="hint">Toque em uma camisa para selecionar.</p>
       <div class="options" id="optionsGrid" role="radiogroup" aria-label="Cores do uniforme COMADREN 2027"></div>
 
+      <!-- Cloudflare Turnstile. TROQUE data-sitekey pela sua Site Key.
+           A Site Key é pública por design; a Secret Key fica na Vercel. -->
+      <div class="captcha-box">
+        <div class="cf-turnstile"
+             id="turnstileBox"
+             data-sitekey="0x4AAAAAAEleNWZo2Nw_Q656"
+             data-language="pt-br"></div>
+      </div>
+
       <button type="submit" id="voteBtn" class="vote-btn" disabled>Confirmar meu voto</button>
       <div id="errorMsg" class="msg error" hidden></div>
       <div id="thanksPanel" class="thanks" hidden></div>
@@ -65,6 +74,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="app.js?v=3"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

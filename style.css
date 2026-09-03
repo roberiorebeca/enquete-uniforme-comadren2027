@@ -262,3 +262,11 @@ footer{
 @media (prefers-reduced-motion: reduce){
   .option-card, .result-bar-fill{transition:none;}
 }
+
+/* Caixa do Cloudflare Turnstile */
+.captcha-box{
+  margin: 18px 0 4px;
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}

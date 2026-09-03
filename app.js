@@ -189,17 +189,47 @@
       const chosenId = selectedId;
       const deviceId = getDeviceId();
 
-      // A gravação passa por uma função no banco que valida o formato do hash,
-      // a cor, o aparelho e um limite por IP. A tabela não aceita mais escrita
-      // direta, e o navegador não precisa mais baixar a lista de votos.
-      const { data: resultado, error } = await supabase.rpc("registrar_voto", {
-        p_voter_hash: key,
-        p_choice: chosenId,
-        p_device_id: deviceId,
-        p_confirmar: deviceWarningAccepted
-      });
+      // Token do Turnstile: prova de que quem está enviando é um navegador
+      // com uma pessoa atrás, não um script. Vale 5 minutos e só uma vez.
+      const token = (window.turnstile && window.turnstile.getResponse()) || "";
+      if (!token) {
+        showError("Confirme a verificação de segurança logo acima do botão e tente novamente.");
+        return;
+      }
 
-      if (error) { handleSupabaseError(error); return; }
+      // O navegador não escreve mais no banco. Manda o voto para /api/votar,
+      // que valida o token no servidor e só então grava.
+      let resultado = null;
+      try {
+        const resposta = await fetch("/api/votar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            voter_hash: key,
+            choice: chosenId,
+            device_id: deviceId,
+            confirmar: deviceWarningAccepted,
+            token: token
+          })
+        });
+        const corpo = await resposta.json();
+        resultado = corpo && corpo.resultado;
+      } catch (err) {
+        handleSupabaseError(err);
+        return;
+      } finally {
+        // O token é de uso único: sempre renova, deu certo ou não.
+        if (window.turnstile) window.turnstile.reset();
+      }
+
+      if (resultado === "sem_captcha" || resultado === "captcha_invalido") {
+        showError("A verificação de segurança expirou. Refaça a verificação e confirme de novo.");
+        return;
+      }
+      if (resultado === "captcha_indisponivel" || resultado === "erro_banco" || resultado === "erro_config") {
+        showError("Não foi possível registrar seu voto agora. Tente novamente em alguns instantes.");
+        return;
+      }
 
       // Aparelho já votou com OUTRO número: avisa uma vez e deixa seguir —
       // é legítimo alguém votar pelo celular de outra pessoa.
