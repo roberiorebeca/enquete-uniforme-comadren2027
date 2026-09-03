@@ -28,7 +28,7 @@
   const returningNote = document.getElementById("returningNote");
 
   let selectedId = null;
-  let currentVotes = []; // array of {voter_hash, choice, device_id}
+  let currentCounts = {}; // {orange: 12, blue: 7, ...} vindo da função resultados()
   let canVote = true;
   let deviceWarningAccepted = false;
 
@@ -95,17 +95,8 @@
     errorMsg.textContent = "";
   }
 
-  function computeCounts(votes){
-    const counts = {};
-    OPTIONS.forEach(function(o){ counts[o.id] = 0; });
-    votes.forEach(function(v){
-      if (v && counts[v.choice] !== undefined) counts[v.choice]++;
-    });
-    return counts;
-  }
-
   function renderResults(){
-    const counts = computeCounts(currentVotes);
+    const counts = currentCounts;
     const total = Object.keys(counts).reduce(function(sum,k){ return sum + counts[k]; }, 0);
     const sorted = OPTIONS.slice().sort(function(a,b){ return counts[b.id]-counts[a.id]; });
     resultsList.innerHTML = sorted.map(function(o){
@@ -149,8 +140,11 @@
     showError("Não foi possível registrar seu voto agora. Verifique sua conexão e tente novamente.");
   }
 
+  // A contagem é feita no banco e volta em 6 linhas, uma por cor.
+  // Baixar a tabela inteira não funcionava: a API do Supabase devolve no
+  // máximo 1000 linhas por requisição, então o placar congelava em 1000.
   async function loadVotes(){
-    const { data, error } = await supabase.from("votes").select("voter_hash,choice,device_id");
+    const { data, error } = await supabase.rpc("resultados");
     if (error) {
       console.error(error);
       canVote = false;
@@ -159,7 +153,12 @@
       updateSubmitEnabled();
       return;
     }
-    currentVotes = data || [];
+    const counts = {};
+    OPTIONS.forEach(function(o){ counts[o.id] = 0; });
+    (data || []).forEach(function(r){
+      if (r && counts[r.choice] !== undefined) counts[r.choice] = Number(r.votos) || 0;
+    });
+    currentCounts = counts;
     renderResults();
   }
 
@@ -187,40 +186,38 @@
     setSubmitting(true);
     try {
       const key = await hashPhone(phoneDigits);
-      const already = currentVotes.some(function(v){ return v.voter_hash === key; });
       const chosenId = selectedId;
       const deviceId = getDeviceId();
 
-      // Este aparelho já votou com OUTRO número? Avisa uma vez e deixa seguir —
-      // é legítimo alguém votar pelo celular de outra pessoa.
-      const deviceTrackable = deviceId && deviceId !== "sem-storage";
-      const otherOnDevice = deviceTrackable && currentVotes.some(function(v){
-        return v.device_id === deviceId && v.voter_hash !== key;
-      });
-      if (otherOnDevice && !deviceWarningAccepted) {
-        deviceWarningAccepted = true;
-        showError("Este aparelho já registrou um voto com outro número. Se você está votando por outra pessoa, é só confirmar de novo.");
-        return;
-      }
-
       // A gravação passa por uma função no banco que valida o formato do hash,
-      // a cor e um limite por IP. A tabela não aceita mais escrita direta.
+      // a cor, o aparelho e um limite por IP. A tabela não aceita mais escrita
+      // direta, e o navegador não precisa mais baixar a lista de votos.
       const { data: resultado, error } = await supabase.rpc("registrar_voto", {
         p_voter_hash: key,
         p_choice: chosenId,
-        p_device_id: deviceId
+        p_device_id: deviceId,
+        p_confirmar: deviceWarningAccepted
       });
 
       if (error) { handleSupabaseError(error); return; }
 
+      // Aparelho já votou com OUTRO número: avisa uma vez e deixa seguir —
+      // é legítimo alguém votar pelo celular de outra pessoa.
+      if (resultado === "aparelho_repetido") {
+        deviceWarningAccepted = true;
+        showError("Este aparelho já registrou um voto com outro número. Se você está votando por outra pessoa, é só confirmar de novo.");
+        return;
+      }
       if (resultado === "limite") {
         showError("Chegaram muitos votos desta conexão em pouco tempo. Aguarde alguns minutos e tente de novo.");
         return;
       }
-      if (resultado !== "ok") {
+      if (resultado !== "ok" && resultado !== "ok_atualizado") {
         showError("Não foi possível registrar seu voto. Recarregue a página e tente novamente.");
         return;
       }
+
+      const already = (resultado === "ok_atualizado");
 
       try {
         localStorage.setItem("comadren_voter", JSON.stringify({name: name, phone: phoneDigits}));
@@ -250,9 +247,9 @@
     try { saved = JSON.parse(localStorage.getItem("comadren_voter") || "null"); } catch(e){ saved = null; }
     if (!saved || !saved.phone) return;
     const key = await hashPhone(saved.phone);
-    const existing = currentVotes.filter(function(v){ return v.voter_hash === key; })[0];
-    if (!existing) return;
-    const opt = OPTIONS.filter(function(o){ return o.id === existing.choice; })[0];
+    const { data: escolha, error } = await supabase.rpc("meu_voto", { p_voter_hash: key });
+    if (error || !escolha) return;
+    const opt = OPTIONS.filter(function(o){ return o.id === escolha; })[0];
     nameInput.value = saved.name || "";
     phoneInput.value = saved.phone || "";
     if (opt) {
