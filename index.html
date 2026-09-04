@@ -21,6 +21,17 @@
     </div>
   </header>
 
+  <section class="countdown" id="countdown" hidden>
+    <p class="cd-label" id="cdLabel">A votação encerra em</p>
+    <div class="cd-blocks" id="cdBlocks">
+      <div class="cd-block"><span class="cd-num" id="cdDays">--</span><span class="cd-unit">dias</span></div>
+      <div class="cd-block"><span class="cd-num" id="cdHours">--</span><span class="cd-unit">horas</span></div>
+      <div class="cd-block"><span class="cd-num" id="cdMin">--</span><span class="cd-unit">min</span></div>
+      <div class="cd-block"><span class="cd-num" id="cdSec">--</span><span class="cd-unit">seg</span></div>
+    </div>
+    <p class="cd-deadline" id="cdDeadline"></p>
+  </section>
+
   <div class="why">
     <div class="why-item"><div class="mono">I</div><h3>Identidade</h3><p>Fortalece quem somos e o que representamos.</p></div>
     <div class="why-item"><div class="mono">P</div><h3>Propósito</h3><p>Cada cor carrega um significado que inspira.</p></div>
@@ -53,7 +64,7 @@
       <div class="captcha-box">
         <div class="cf-turnstile"
              id="turnstileBox"
-             data-sitekey="0x4AAAAAAEleNWZo2Nw_Q656"
+             data-sitekey="SUBSTITUA_PELA_SITE_KEY"
              data-language="pt-br"></div>
       </div>
 
@@ -64,8 +75,8 @@
   </section>
 
   <section class="card">
-    <h2>Resultado parcial</h2>
-    <p class="hint">Atualizado em tempo real conforme os votos chegam.</p>
+    <h2 id="resultsTitle">Resultado parcial</h2>
+    <p class="hint" id="resultsHint">Atualizado em tempo real conforme os votos chegam.</p>
     <div class="results-list" id="resultsList"></div>
     <div class="results-total" id="resultsTotal"></div>
   </section>
@@ -75,6 +86,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

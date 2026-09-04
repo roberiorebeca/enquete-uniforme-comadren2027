@@ -270,3 +270,64 @@ footer{
   justify-content: center;
   min-height: 65px;
 }
+
+/* Contador regressivo */
+.countdown{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-soft);
+  padding:18px 20px 16px;
+  margin:18px 0;
+  text-align:center;
+}
+.cd-label{
+  margin:0 0 12px;
+  font-size:.85rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.cd-blocks{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.cd-block{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  padding:10px 14px;
+  min-width:72px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.cd-num{
+  font-family:"Archivo Black", ui-sans-serif, system-ui, sans-serif;
+  font-size:1.7rem;
+  line-height:1.1;
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.cd-unit{
+  font-size:.7rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin-top:2px;
+}
+.cd-deadline{
+  margin:12px 0 0;
+  font-size:.85rem;
+  color:var(--ink-soft);
+}
+.countdown.encerrada .cd-label{ color:var(--danger); }
+.countdown.encerrada .cd-blocks{ display:none; }
+
+@media (max-width:420px){
+  .cd-block{ min-width:64px; padding:8px 10px; }
+  .cd-num{ font-size:1.4rem; }
+}

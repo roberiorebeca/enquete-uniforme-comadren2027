@@ -26,11 +26,24 @@
   const resultsTotal = document.getElementById("resultsTotal");
   const unavailableBanner = document.getElementById("unavailableBanner");
   const returningNote = document.getElementById("returningNote");
+  const countdownBox = document.getElementById("countdown");
+  const cdLabel = document.getElementById("cdLabel");
+  const cdDeadline = document.getElementById("cdDeadline");
+  const cdDays = document.getElementById("cdDays");
+  const cdHours = document.getElementById("cdHours");
+  const cdMin = document.getElementById("cdMin");
+  const cdSec = document.getElementById("cdSec");
+  const captchaBox = document.querySelector(".captcha-box");
+  const resultsTitle = document.getElementById("resultsTitle");
+  const resultsHint = document.getElementById("resultsHint");
 
   let selectedId = null;
   let currentCounts = {}; // {orange: 12, blue: 7, ...} vindo da função resultados()
   let canVote = true;
   let deviceWarningAccepted = false;
+  let votacaoEncerrada = false;
+  let prazo = null;
+  let relogio = null;
 
   // Identificador aleatório por navegador. Não identifica a pessoa: serve só para
   // detectar votos repetidos vindos do mesmo aparelho. Some se o usuário limpar o
@@ -83,7 +96,71 @@
   }
 
   function updateSubmitEnabled(){
-    voteBtn.disabled = !canVote;
+    voteBtn.disabled = !canVote || votacaoEncerrada;
+  }
+
+  // ---- Encerramento da votação -------------------------------------------
+  // O prazo verdadeiro é o do banco: registrar_voto recusa qualquer voto
+  // depois dele. O contador abaixo é a versão visível disso.
+  // Reserva usada só se a consulta ao banco falhar: 08/09/2026 23:59:59 em
+  // Mato Grosso (UTC-4) = 09/09/2026 03:59:59 UTC.
+  const PRAZO_RESERVA = "2026-09-09T03:59:59Z";
+
+  async function carregarPrazo(){
+    try {
+      const { data, error } = await supabase.rpc("enquete_fim");
+      if (!error && data) {
+        const d = new Date(data);
+        if (!isNaN(d.getTime())) { prazo = d; return; }
+      }
+    } catch(e) { /* cai na reserva */ }
+    prazo = new Date(PRAZO_RESERVA);
+  }
+
+  function dois(n){ return String(n).padStart(2, "0"); }
+
+  function tiquetaquear(){
+    const restante = prazo.getTime() - Date.now();
+    if (restante <= 0) { encerrarVotacao(); return; }
+    const s = Math.floor(restante / 1000);
+    cdDays.textContent  = String(Math.floor(s / 86400));
+    cdHours.textContent = dois(Math.floor((s % 86400) / 3600));
+    cdMin.textContent   = dois(Math.floor((s % 3600) / 60));
+    cdSec.textContent   = dois(s % 60);
+  }
+
+  function iniciarContador(){
+    cdDeadline.textContent =
+      "Encerra em 8 de setembro de 2026, às 23h59 — horário de Mato Grosso.";
+    countdownBox.hidden = false;
+    tiquetaquear();
+    if (relogio) clearInterval(relogio);
+    relogio = setInterval(tiquetaquear, 1000);
+  }
+
+  function encerrarVotacao(){
+    if (votacaoEncerrada) return;
+    votacaoEncerrada = true;
+    if (relogio) { clearInterval(relogio); relogio = null; }
+
+    countdownBox.hidden = false;
+    countdownBox.classList.add("encerrada");
+    cdLabel.textContent = "Votação encerrada";
+    cdDeadline.textContent =
+      "A votação foi encerrada em 8 de setembro de 2026, às 23h59. Obrigado a quem participou!";
+
+    voteForm.querySelectorAll("input, button").forEach(function(el){ el.disabled = true; });
+    Array.prototype.forEach.call(optionsGrid.querySelectorAll(".option-card"), function(btn){
+      btn.disabled = true;
+    });
+    if (captchaBox) captchaBox.hidden = true;
+    voteBtn.textContent = "Votação encerrada";
+    hideError();
+    thanksPanel.hidden = true;
+    returningNote.hidden = true;
+
+    resultsTitle.textContent = "Resultado final";
+    resultsHint.textContent = "Votação encerrada. Estes são os números definitivos.";
   }
 
   function showError(text){
@@ -176,6 +253,11 @@
     hideError();
     thanksPanel.hidden = true;
 
+    if (votacaoEncerrada) {
+      showError("A votação já foi encerrada.");
+      return;
+    }
+
     const name = nameInput.value.trim();
     const phoneDigits = phoneInput.value.replace(/\D/g, "");
 
@@ -222,6 +304,13 @@
         if (window.turnstile) window.turnstile.reset();
       }
 
+      // O banco é a autoridade sobre o prazo: se ele disse que acabou, acabou,
+      // mesmo que o relógio do aparelho de quem vota esteja atrasado.
+      if (resultado === "encerrada") {
+        encerrarVotacao();
+        showError("A votação foi encerrada. Seu voto não pôde ser registrado.");
+        return;
+      }
       if (resultado === "sem_captcha" || resultado === "captcha_invalido") {
         showError("A verificação de segurança expirou. Refaça a verificação e confirme de novo.");
         return;
@@ -292,8 +381,14 @@
   (async function init(){
     buildOptionCards();
     voteForm.addEventListener("submit", onSubmit);
+    await carregarPrazo();
+    if (Date.now() >= prazo.getTime()) {
+      encerrarVotacao();
+    } else {
+      iniciarContador();
+    }
     await loadVotes();
     subscribeRealtime();
-    await tryRestoreReturningVoter();
+    if (!votacaoEncerrada) await tryRestoreReturningVoter();
   })();
 })();
